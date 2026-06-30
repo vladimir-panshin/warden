@@ -7,8 +7,6 @@
 
 Warden is an authentication backend — registration, login, two-factor authentication, and session lifecycle, and deliberately nothing else. The goal is a small, readable core that's easy to build on.
 
----
-
 ## Getting started
 
 ### With Docker (recommended)
@@ -30,8 +28,6 @@ psql "$DATABASE_URL" -f schema.sql
 go run ./cmd/server
 ```
 
----
-
 ## Configuration
 
 All configuration is via environment variables.
@@ -42,8 +38,6 @@ All configuration is via environment variables.
 | `REDIS_URL` | Redis address (`host:port`) |
 | `SERVER_PORT` | HTTP port (default `8080`) |
 | `TRUSTED_PROXIES` | Comma-separated CIDRs of trusted reverse proxies. Empty = trust direct connections only. |
-
----
 
 ## API
 

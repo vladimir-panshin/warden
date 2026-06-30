@@ -1,0 +1,15 @@
+.env
+.env.local
+
+/server
+/tmp/
+*.exe
+*.test
+*.out
+
+.air.toml
+build-errors.log
+
+.DS_Store
+.idea/
+.vscode/

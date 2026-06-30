@@ -41,10 +41,6 @@ func main() {
 		_ = r.SetTrustedProxies(nil)
 	}
 
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
-
 	v1 := r.Group("/api/v1")
 	auth.NewHandler(sm, rdb).RegisterRoutes(v1)
 

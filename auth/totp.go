@@ -3,8 +3,10 @@ package auth
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"image/png"
 
@@ -47,4 +49,17 @@ func GenerateRecoveryCodes() ([]string, error) {
 		codes[i] = base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(b)[:12]
 	}
 	return codes, nil
+}
+
+func HashRecoveryCode(code string) string {
+	sum := sha256.Sum256([]byte(code))
+	return hex.EncodeToString(sum[:])
+}
+
+func HashRecoveryCodes(codes []string) []string {
+	hashed := make([]string, len(codes))
+	for i, c := range codes {
+		hashed[i] = HashRecoveryCode(c)
+	}
+	return hashed
 }

@@ -78,7 +78,7 @@ func (h *Handler) TwoFAConfirm(c *gin.Context) {
 		return
 	}
 
-	if err := db.UpdateRecoveryCodes(c.Request.Context(), userID, codes); err != nil {
+	if err := db.UpdateRecoveryCodes(c.Request.Context(), userID, auth.HashRecoveryCodes(codes)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -122,7 +122,7 @@ func (h *Handler) TwoFADisable(c *gin.Context) {
 			return
 		}
 	} else {
-		ok, err := db.ConsumeRecoveryCode(c.Request.Context(), userID, req.RecoveryCode)
+		ok, err := db.ConsumeRecoveryCode(c.Request.Context(), userID, auth.HashRecoveryCode(req.RecoveryCode))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 			return

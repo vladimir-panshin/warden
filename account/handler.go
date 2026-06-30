@@ -60,6 +60,47 @@ func (h *Handler) GetMe(c *gin.Context) {
 	})
 }
 
+func (h *Handler) ChangePassword(c *gin.Context) {
+	var req models.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	userID := c.GetString("userID")
+	account, err := db.GetAccountByID(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(req.OldPassword)) != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid password"})
+		return
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(req.NewPassword)) == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must differ from old"})
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	if err := db.UpdateAccountPassword(c.Request.Context(), userID, string(hash)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	sessionID, _ := c.Cookie(sessionCookie)
+	_ = h.sm.DeleteAllExcept(c.Request.Context(), userID, sessionID)
+
+	c.JSON(http.StatusOK, gin.H{})
+}
+
 func (h *Handler) ChangeEmail(c *gin.Context) {
 	var req models.ChangeEmailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -102,47 +143,6 @@ func (h *Handler) ChangeEmail(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-func (h *Handler) ChangePassword(c *gin.Context) {
-	var req models.ChangePasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
-
-	userID := c.GetString("userID")
-	account, err := db.GetAccountByID(c.Request.Context(), userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	if bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(req.OldPassword)) != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid password"})
-		return
-	}
-
-	if bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(req.NewPassword)) == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must differ from old"})
-		return
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	if err := db.UpdateAccountPassword(c.Request.Context(), userID, string(hash)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	sessionID, _ := c.Cookie(sessionCookie)
-	_ = h.sm.DeleteAllExcept(c.Request.Context(), userID, sessionID)
-
-	c.JSON(http.StatusOK, gin.H{})
-}
-
 func (h *Handler) DeleteAccount(c *gin.Context) {
 	var req models.DeleteAccountRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -170,7 +170,7 @@ func (h *Handler) DeleteAccount(c *gin.Context) {
 				return
 			}
 		case req.RecoveryCode != "":
-			ok, err := db.ConsumeRecoveryCode(c.Request.Context(), userID, req.RecoveryCode)
+			ok, err := db.ConsumeRecoveryCode(c.Request.Context(), userID, auth.HashRecoveryCode(req.RecoveryCode))
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return

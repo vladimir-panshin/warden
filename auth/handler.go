@@ -158,7 +158,7 @@ func (h *Handler) Recovery(c *gin.Context) {
 	}
 
 	userID := c.GetString("userID")
-	ok, err := db.ConsumeRecoveryCode(c.Request.Context(), userID, req.Code)
+	ok, err := db.ConsumeRecoveryCode(c.Request.Context(), userID, HashRecoveryCode(req.Code))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
